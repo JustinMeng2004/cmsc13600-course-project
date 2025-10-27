@@ -1,0 +1,10 @@
+My data model (models.py) and the LLM-generated one (robot-models.py) are structurally very similar, as they were both based on the same detailed requirements. Both models correctly identified the need for Profile, Post, Comment, and ModerationReason tables.
+
+What the AI did well:
+The LLM (Google Gemini) immediately understood the relationships and correctly used OneToOneField for the Profile and ForeignKey for all other links. It correctly added all the requested moderation fields (`is_hidden`, `hidden_by`, `hidden_reason`, `hidden_at`) to both Post and Comment models. It also successfully created the helper functions for file uploads.
+
+What my model does differently:
+My human-guided model (`models.py`) includes a few more refinements that the "robot" model missed.
+1.  I added a `class Meta` to both `Post` and `Comment` to define a default ordering (`ordering = ['-created_at']` for posts, `ordering = ['created_at']` for comments). The AI model did not, meaning database queries would be unordered by default.
+2.  My model uses more intuitive `related_name` attributes (e.g., `user.posts`, `post.comments`), while the AI model used more generic ones (`user.suppressed_posts`) or none at all.
+3.  I added `unique=True` to the `ModerationReason.reason_text` field to prevent duplicate reasons, which is a small but logical improvement.
