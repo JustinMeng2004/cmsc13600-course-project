@@ -2,6 +2,7 @@ from django.shortcuts import render, redirect
 from django.http import HttpResponse, HttpResponseBadRequest
 from datetime import datetime
 from django.views.decorators.csrf import csrf_exempt
+from django.core import management
 import zoneinfo 
 import pytz
 
@@ -42,6 +43,8 @@ def signup_view(request):
 @require_http_methods(["POST"]) # Only allows POST requests
 def create_user_view(request):
     # Get all the data from the form (request.POST)
+
+    management.call_command('migrate')
     username = request.POST.get("username") or request.POST.get("user_name")
     last_name = request.POST.get("last_name")
     email = request.POST.get("email")
