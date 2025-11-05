@@ -18,7 +18,7 @@ def index(request):
     now = datetime.now(tz)
 
     # Format the time nicely
-    current_time_str = now.strftime("%#I:%M %p on %B %d, %Y")
+    current_time_str = now.strftime("%H:%M")
 
     # This is the "context" dictionary that sends data to the template
     context = {
@@ -40,7 +40,7 @@ def signup_view(request):
 @require_http_methods(["POST"]) # Only allows POST requests
 def create_user_view(request):
     # Get all the data from the form (request.POST)
-    username = request.POST.get("user_name")
+    username = request.POST.get("username")
     last_name = request.POST.get("last_name")
     email = request.POST.get("email")
     password = request.POST.get("password")
