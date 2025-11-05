@@ -35,7 +35,6 @@
         <h3>About Me</h3>
         <p>
             My name is Justi, and I am a student in CMSC 13600.
-            (You can add your teammates' names here too.)
         </p>
 
         <hr>
@@ -43,7 +42,7 @@
         <h3>User Status</h3>
         <p>
             {% if user.is_authenticated %}
-                Hello, <span class="highlight">{{ user.username }}</span>!
+                Hello, <span class="highlight">{{ user.username }} ({{ user.email }})</span>!
             {% else %}
                 You are not logged in.
             {% endif %}

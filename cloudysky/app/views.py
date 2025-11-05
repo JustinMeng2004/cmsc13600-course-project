@@ -40,7 +40,7 @@ def signup_view(request):
 @require_http_methods(["POST"]) # Only allows POST requests
 def create_user_view(request):
     # Get all the data from the form (request.POST)
-    username = request.POST.get("username")
+    username = request.POST.get("username") or request.POST.get("user_name")
     last_name = request.POST.get("last_name")
     email = request.POST.get("email")
     password = request.POST.get("password")
