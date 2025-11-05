@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CloudySky</title>
+    <style>
+        /* This centers everything on the page */
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin-top: 50px;
+        }
+        .content {
+            display: inline-block;
+            text-align: left;
+            border: 1px solid #ccc;
+            padding: 30px;
+            border-radius: 8px;
+        }
+        /* This will be the highlight for the user's name */
+        .highlight {
+            background-color: yellow;
+            font-weight: bold;
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="content">
+        <h1>Welcome to CloudySky ☁️</h1>
+
+        <hr>
+
+        <h3>About Me</h3>
+        <p>
+            My name is Justi, and I am a student in CMSC 13600.
+            (You can add your teammates' names here too.)
+        </p>
+
+        <hr>
+
+        <h3>User Status</h3>
+        <p>
+            {% if user.is_authenticated %}
+                Hello, <span class="highlight">{{ user.username }}</span>!
+            {% else %}
+                You are not logged in.
+            {% endif %}
+        </p>
+
+        <hr>
+
+        <p>
+            The current time in Chicago is: 
+            <strong>{{ current_time }}</strong>
+        </p>
+    </div>
+
+</body>
+</html>

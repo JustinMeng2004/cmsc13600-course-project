@@ -1,11 +1,102 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
+from django.http import HttpResponse, HttpResponseBadRequest
+from datetime import datetime
+import zoneinfo 
+import pytz
+
+from django.contrib.auth.models import User
+from django.contrib.auth import login, authenticate
+from django.views.decorators.http import require_http_methods
+from .models import Profile
 
 # Create your views here.
 # app/views.py
 
-from django.http import HttpResponse
-from datetime import datetime
-import pytz # A library to handle timezones
+def index(request):
+    # Set the timezone to Chicago (Central Time)
+    tz = zoneinfo.ZoneInfo("America/Chicago")
+    now = datetime.now(tz)
+
+    # Format the time nicely
+    current_time_str = now.strftime("%#I:%M %p on %B %d, %Y")
+
+    # This is the "context" dictionary that sends data to the template
+    context = {
+        'current_time': current_time_str,
+        # 'user' is automatically added by Django if you are logged in
+    }
+
+    # This renders the index.html template with the context data
+    return render(request, 'app/index.html', context)
+
+# This view just shows the sign-up page
+@require_http_methods(["GET"])  # Only allows GET requests
+def signup_view(request):
+    # This just renders the new signup.html template we made
+    return render(request, 'app/signup.html')
+
+
+# This view handles the form data from the sign-up page
+@require_http_methods(["POST"]) # Only allows POST requests
+def create_user_view(request):
+    # Get all the data from the form (request.POST)
+    username = request.POST.get("user_name")
+    last_name = request.POST.get("last_name")
+    email = request.POST.get("email")
+    password = request.POST.get("password")
+
+    # The 'is_admin' checkbox sends "on" if checked, or None if not.
+    is_admin_str = request.POST.get("is_admin")
+    is_admin = True if is_admin_str == "on" else False
+
+    # --- Validation ---
+    # 1. Check if username or email is missing
+    if not username or not email or not password:
+        return HttpResponseBadRequest("Username, Email, and Password are required.")
+
+    # 2. Check if email is already used
+    if User.objects.filter(email=email).exists():
+        return HttpResponseBadRequest("Error: This email address is already in use.")
+
+    # 3. Check if username is already used
+    if User.objects.filter(username=username).exists():
+        return HttpResponseBadRequest("Error: This username is already taken.")
+
+    # --- Create the User ---
+    try:
+        # Create the built-in Django User
+        user = User.objects.create_user(
+            username=username,
+            password=password,
+            email=email,
+            last_name=last_name
+        )
+
+        # Now, create the matching Profile for this user (from HW3)
+        # This is the "UserType table" your assignment mentioned
+        user_type = Profile.UserType.ADMIN if is_admin else Profile.UserType.SERF
+
+        Profile.objects.create(
+            user=user,
+            user_type=user_type
+            # 'bio' and 'avatar' will be blank by default
+        )
+
+        # Log the new user in automatically
+        login(request, user)
+
+        # Send a success message
+        return HttpResponse(f"Success! User '{username}' has been created and logged in.")
+
+    except Exception as e:
+        # Catch any other errors
+        return HttpResponseBadRequest(f"An error occurred: {e}")
+
+
+
+
+# The functions below are from prior HW2 
+
 
 # This function will handle requests to /app/time
 def get_current_time(request):
