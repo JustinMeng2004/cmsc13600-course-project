@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect
 from django.http import HttpResponse, HttpResponseBadRequest
 from datetime import datetime
+from django.views.decorators.csrf import csrf_exempt
 import zoneinfo 
 import pytz
 
@@ -37,6 +38,7 @@ def signup_view(request):
 
 
 # This view handles the form data from the sign-up page
+@csrf_exempt
 @require_http_methods(["POST"]) # Only allows POST requests
 def create_user_view(request):
     # Get all the data from the form (request.POST)
