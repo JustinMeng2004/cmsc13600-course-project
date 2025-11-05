@@ -46,7 +46,7 @@ def create_user_view(request):
 
     management.call_command('migrate')
     username = request.POST.get("username") or request.POST.get("user_name")
-    last_name = request.POST.get("last_name")
+    last_name = request.POST.get("last_name", "")
     email = request.POST.get("email")
     password = request.POST.get("password")
 
