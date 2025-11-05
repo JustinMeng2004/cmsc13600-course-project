@@ -47,7 +47,7 @@ def create_user_view(request):
 
     # The 'is_admin' checkbox sends "on" if checked, or None if not.
     is_admin_str = request.POST.get("is_admin")
-    is_admin = True if is_admin_str == "on" else False
+    is_admin = True if is_admin_str == "1" else False
 
     # --- Validation ---
     # 1. Check if username or email is missing
