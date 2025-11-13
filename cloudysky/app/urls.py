@@ -5,8 +5,8 @@ from . import views
 
 urlpatterns = [
     # --- HW4 Paths (already here) ---
-    path('new', views.signup_view, name='signup_page'),
-    path('createUser', views.create_user_view, name='create_user_endpoint'),
+    path('new/', views.signup_view, name='signup_page'),
+    path('createUser/', views.create_user_view, name='create_user_endpoint'),
 
     # --- HW5 Step 2: Form-serving pages ---
     path('new_post', views.new_post_view, name='new_post_view'),
