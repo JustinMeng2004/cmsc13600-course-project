@@ -145,9 +145,9 @@ def create_post_api(request):
 @require_http_methods(["POST"])
 
 def create_comment_api(request):
-	if not request.user.is_authenticated:
-        	return HttpResponse("Unauthorized", status=401)
-
+    if not request.user.is_authenticated:
+        return HttpResponse("Unauthorized", status=401)
+    
     post_id = request.POST.get('post_id')
     content = request.POST.get('content')
 
