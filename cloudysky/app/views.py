@@ -8,7 +8,7 @@ import pytz
 from django.contrib.auth.models import User
 from django.contrib.auth import login, authenticate
 from django.views.decorators.http import require_http_methods
-from .models import Profilem, Post, Comment, ModerationReason
+from .models import Profile, Post, Comment, ModerationReason
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpResponse, HttpResponseBadRequest, JsonResponse, HttpResponseForbidden, HttpResponseNotAllowed
 from datetime import datetime
