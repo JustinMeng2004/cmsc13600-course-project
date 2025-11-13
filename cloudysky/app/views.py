@@ -5,11 +5,25 @@ from django.views.decorators.csrf import csrf_exempt
 from django.core import management
 import zoneinfo 
 import pytz
-
 from django.contrib.auth.models import User
 from django.contrib.auth import login, authenticate
 from django.views.decorators.http import require_http_methods
 from .models import Profile
+from django.shortcuts import render, redirect, get_object_or_404
+from django.http import HttpResponse, HttpResponseBadRequest, JsonResponse, HttpResponseForbidden, HttpResponseNotAllowed
+from datetime import datetime
+import zoneinfo
+from django.contrib.auth.models import User
+from django.contrib.auth import login, authenticate
+from django.views.decorators.http import require_http_methods
+from django.views.decorators.csrf import csrf_exempt
+from django.core import management
+import json
+
+# --- HW5: Import all our models and login_required ---
+from .models import Profile, Post, Comment, ModerationReason
+from django.contrib.auth.decorators import login_required
+
 
 # Create your views here.
 # app/views.py
@@ -99,7 +113,171 @@ def create_user_view(request):
         # Catch any other errors
         return HttpResponseBadRequest(f"An error occurred: {e}")
 
+# The below are for HW 5
+# ===================================================================
+# HW5 - STEP 2: Form-serving views
+# ===================================================================
 
+@login_required(login_url='/accounts/login/')
+def new_post_view(request):
+    # This view just shows the new_post.html form
+    # The @login_required decorator handles HW5's authentication requirement
+    return render(request, 'app/new_post.html')
+
+@login_required(login_url='/accounts/login/')
+def new_comment_view(request):
+    # This view just shows the new_comment.html form
+    return render(request, 'app/new_comment.html')
+
+
+# ===================================================================
+# HW5 - STEP 1: Core API Endpoints
+# ===================================================================
+
+@csrf_exempt
+@login_required(login_url='/accounts/login/')
+@require_http_methods(["POST"])
+def create_post_api(request):
+    # Get data from the form
+    title = request.POST.get('title')
+    content = request.POST.get('content')
+
+    if not title or not content:
+        return HttpResponseBadRequest("Missing title or content")
+
+    # Create the post
+    Post.objects.create(
+        author=request.user,
+        title=title,
+        content=content
+    )
+
+    # Return HTTP 201 Created
+    return HttpResponse("Post created successfully", status=201)
+
+
+@csrf_exempt
+@login_required(login_url='/accounts/login/')
+@require_http_methods(["POST"])
+def create_comment_api(request):
+    post_id = request.POST.get('post_id')
+    content = request.POST.get('content')
+
+    if not post_id or not content:
+        return HttpResponseBadRequest("Missing post_id or content")
+
+    # Find the post we're commenting on
+    try:
+        post = Post.objects.get(id=post_id)
+    except Post.DoesNotExist:
+        return HttpResponseBadRequest("Post does not exist")
+
+    # Create the comment
+    Comment.objects.create(
+        author=request.user,
+        post=post,
+        content=content
+    )
+
+    # Return HTTP 201 Created
+    return HttpResponse("Comment created successfully", status=201)
+
+
+@csrf_exempt
+@login_required(login_url='/accounts/login/')
+@require_http_methods(["POST"])
+def hide_post_api(request):
+    # Check if user is an admin
+    if not request.user.profile.user_type == 'ADMIN':
+        return HttpResponseForbidden("You are not authorized to perform this action", status=401)
+
+    post_id = request.POST.get('post_id')
+    reason = request.POST.get('reason', 'No reason provided')
+
+    if not post_id:
+        return HttpResponseBadRequest("Missing post_id")
+
+    try:
+        post = Post.objects.get(id=post_id)
+    except Post.DoesNotExist:
+        return HttpResponseBadRequest("Post does not exist")
+
+    # Find or create the moderation reason
+    reason_obj, _ = ModerationReason.objects.get_or_create(reason_text=reason)
+
+    # Hide the post
+    post.is_hidden = True
+    post.hidden_by = request.user
+    post.hidden_reason = reason_obj
+    post.hidden_at = datetime.now(zoneinfo.ZoneInfo("America/Chicago"))
+    post.save()
+
+    # Return HTTP 200 OK
+    return HttpResponse(f"Post {post_id} hidden successfully", status=200)
+
+
+@csrf_exempt
+@login_required(login_url='/accounts/login/')
+@require_http_methods(["POST"])
+def hide_comment_api(request):
+    # Check if user is an admin
+    if not request.user.profile.user_type == 'ADMIN':
+        return HttpResponseForbidden("You are not authorized to perform this action", status=401)
+
+    comment_id = request.POST.get('comment_id')
+    reason = request.POST.get('reason', 'No reason provided')
+
+    if not comment_id:
+        return HttpResponseBadRequest("Missing comment_id")
+
+    try:
+        comment = Comment.objects.get(id=comment_id)
+    except Comment.DoesNotExist:
+        return HttpResponseBadRequest("Comment does not exist")
+
+    # Find or create the moderation reason
+    reason_obj, _ = ModerationReason.objects.get_or_create(reason_text=reason)
+
+    # Hide the comment
+    comment.is_hidden = True
+    comment.hidden_by = request.user
+    comment.hidden_reason = reason_obj
+    comment.hidden_at = datetime.now(zoneinfo.ZoneInfo("America/Chicago"))
+    comment.save()
+
+    # Return HTTP 200 OK
+    return HttpResponse(f"Comment {comment_id} hidden successfully", status=200)
+
+
+# ===================================================================
+# HW5 - STEP 3: Diagnostic API Endpoint
+# ===================================================================
+
+@login_required(login_url='/accounts/login/')
+def dump_feed_api(request):
+    # Check if user is logged in AND is an admin
+    if not request.user.is_authenticated or not request.user.profile.user_type == 'ADMIN':
+        return HttpResponse(status=401) # Return empty response as per spec
+
+    # Get all posts
+    all_posts = Post.objects.all().order_by('-created_at')
+
+    feed_list = []
+    for post in all_posts:
+        # Get all comment IDs for this post
+        comment_ids = list(post.comments.all().values_list('id', flat=True))
+
+        post_data = {
+            'id': post.id,
+            'username': post.author.username,
+            'date': post.created_at.strftime("%Y-%m-%d %H:%M"),
+            'title': post.title,
+            'content': post.content,
+            'comments': comment_ids
+        }
+        feed_list.append(post_data)
+
+    return JsonResponse(feed_list, safe=False)
 
 
 # The functions below are from prior HW2 
