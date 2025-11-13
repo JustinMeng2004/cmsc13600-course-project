@@ -8,7 +8,7 @@ import pytz
 from django.contrib.auth.models import User
 from django.contrib.auth import login, authenticate
 from django.views.decorators.http import require_http_methods
-from .models import Profile
+from .models import Profilem, Post, Comment, ModerationReason
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpResponse, HttpResponseBadRequest, JsonResponse, HttpResponseForbidden, HttpResponseNotAllowed
 from datetime import datetime
@@ -144,7 +144,6 @@ def create_post_api(request):
 @csrf_exempt
 @require_http_methods(["POST"])
 def create_comment_api(request):
-    # Manual Auth Check for 401 response
     if not request.user.is_authenticated:
         return HttpResponse("Unauthorized", status=401)
 
@@ -155,9 +154,11 @@ def create_comment_api(request):
         return HttpResponseBadRequest("Missing post_id or content")
 
     try:
-        post = Post.objects.get(id=post_id)
-    except Post.DoesNotExist:
-        return HttpResponseBadRequest("Post does not exist")
+        # Ensure post_id is an integer to prevent DB errors
+        post = Post.objects.get(id=int(post_id))
+    except (Post.DoesNotExist, ValueError):
+        # Catches both "Post not found" and "post_id is not a number"
+        return HttpResponseBadRequest("Post does not exist or invalid ID")
 
     Comment.objects.create(
         author=request.user,
@@ -166,40 +167,6 @@ def create_comment_api(request):
     )
 
     return HttpResponse("Comment created successfully", status=201)
-
-
-@csrf_exempt
-@require_http_methods(["POST"])
-def hide_post_api(request):
-    # Manual Auth Check for 401 response
-    if not request.user.is_authenticated:
-        return HttpResponse("Unauthorized", status=401)
-
-    # Check if user is an admin (keep this for hide functions)
-    if not request.user.profile.user_type == 'ADMIN':
-        return HttpResponseForbidden("You are not authorized", status=401)
-
-    post_id = request.POST.get('post_id')
-    reason = request.POST.get('reason', 'No reason provided')
-
-    if not post_id:
-        return HttpResponseBadRequest("Missing post_id")
-
-    try:
-        post = Post.objects.get(id=post_id)
-    except Post.DoesNotExist:
-        return HttpResponseBadRequest("Post does not exist")
-
-    reason_obj, _ = ModerationReason.objects.get_or_create(reason_text=reason)
-
-    post.is_hidden = True
-    post.hidden_by = request.user
-    post.hidden_reason = reason_obj
-    post.hidden_at = datetime.now(zoneinfo.ZoneInfo("America/Chicago"))
-    post.save()
-
-    return HttpResponse(f"Post {post_id} hidden successfully", status=200)
-
 
 @csrf_exempt
 @require_http_methods(["POST"])
