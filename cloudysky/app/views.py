@@ -143,9 +143,10 @@ def create_post_api(request):
 
 @csrf_exempt
 @require_http_methods(["POST"])
+
 def create_comment_api(request):
-    if not request.user.is_authenticated:
-        return HttpResponse("Unauthorized", status=401)
+	if not request.user.is_authenticated:
+        	return HttpResponse("Unauthorized", status=401)
 
     post_id = request.POST.get('post_id')
     content = request.POST.get('content')
@@ -224,8 +225,9 @@ def new_comment_view(request):
 # ===================================================================
 
 @csrf_exempt
-@login_required(login_url='/accounts/login/')
 @require_http_methods(["POST"])
+if not request.user.is_authenticated:
+      return HttpResponse("Unauthorized", status=401)
 def create_post_api(request):
     # Get data from the form
     title = request.POST.get('title')
