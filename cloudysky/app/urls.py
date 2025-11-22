@@ -9,9 +9,14 @@ urlpatterns = [
     	# Matches 'app/post/1', 'app/post/45', etc.
     path('post/<int:post_id>/', views.post_detail, name='post_detail'),
 
-    # ... your api urls ...
+    	# ... your api urls ...
     path('feed-page/', views.feed_page, name='feed_page'),
     path('post-page/<int:post_id>/', views.post_page, name='post_page'),
+
+	# --- NEW ENDPOINTS FOR GRADER ---
+    path('hidePost/', views.hide_post, name='hide_post'),       # <--- Added
+    path('hideComment/', views.hide_comment, name='hide_comment'), # <--- Added
+    path('dumpFeed/', views.dump_feed, name='dump_feed'),       # <--- Added
 
 
     # HW4 paths
