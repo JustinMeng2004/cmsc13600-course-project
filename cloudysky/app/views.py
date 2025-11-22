@@ -1,5 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from django.http import HttpResponse, HttpResponseBadRequest, JsonResponse, HttpResponseForbidden
+from django.http import HttpResponse, HttpResponseBadRequest, JsonResponse, HttpResponseForbidden, HttpResponseNotFound
 from datetime import datetime
 import zoneinfo
 import pytz
@@ -10,6 +10,139 @@ from django.views.decorators.csrf import csrf_exempt
 from django.core import management
 from django.contrib.auth.decorators import login_required
 from .models import Profile, Post, Comment, ModerationReason
+
+
+# ===================================================================
+# HW6 - Views for Feed, frontend
+# ===================================================================
+# This view just loads the HTML file. The JavaScript inside does the rest.
+@login_required
+def feed_page(request):
+    return render(request, 'app/feed.html')
+
+@login_required
+def post_page(request, post_id):
+    # We pass the post_id to the template so JavaScript knows which API to hit
+    return render(request, 'app/post.html', {'post_id': post_id})
+
+
+def is_censor(user):
+    """
+    Returns True if user is a superuser or part of a 'Censor' group.
+    Adjust this logic if your HW defines 'censors' differently.
+    """
+    if not user.is_authenticated:
+        return False
+    # Example: Censors are superusers OR in a group named "Censors"
+    return user.is_superuser or user.groups.filter(name='Censors').exists()
+
+def can_view_hidden_content(user, owner):
+    """
+    Returns True if the user is allowed to see suppressed content.
+    Rule: Only the Creator (owner) and Censors can see it.
+    """
+    if not user.is_authenticated:
+        return False
+    return user == owner or is_censor(user)
+
+# --- API VIEWS ---
+
+@login_required
+def feed(request):
+    """
+    ENDPOINT: app/feed
+    - Lists all posts in reverse chronological order.
+    - CENSORSHIP: If a post is suppressed, it is removed entirely from the list
+      (unless the viewer is the creator or a censor).
+    """
+    # Get all posts sorted by newest first
+    all_posts = Post.objects.all().order_by('-created_at')
+    data = []
+
+    for post in all_posts:
+        # 1. APPLY CENSORSHIP (The Disappearing Act)
+        if post.is_suppressed:
+            # If I am NOT the owner AND NOT a censor, skip this post completely.
+            if not can_view_hidden_content(request.user, post.user):
+                continue 
+
+        # 2. Truncate Content (for the feed view)
+        # Example: "This is a long post..."
+        short_content = post.content[:50] + "..." if len(post.content) > 50 else post.content
+
+        # --- GET COLOR SAFELY ---
+        try:
+            user_color = post.author.profile.color
+        except AttributeError:
+            user_color = "#000000" # Fallback black if no profile exists
+        
+	# 3. Build JSON object
+        data.append({
+            "id": post.id,
+            "title": post.title,
+            "username": post.author.username,
+            "date": post.created_at.strftime("%Y-%m-%d %H:%M"),
+            "content_truncated": short_content,
+            "is_suppressed": post.is_suppressed, # Good for frontend to show a "Hidden" badge
+            "color": user_color  # <-- Uncomment if you have color profiles
+        })
+
+    return JsonResponse({"feed": data}, safe=False)
+
+
+@login_required
+def post_detail(request, post_id):
+    post = get_object_or_404(Post, id=post_id)
+
+    # 1. Check Post Visibility
+    if post.is_suppressed:
+        if not can_view_hidden_content(request.user, post.author):
+            return HttpResponseNotFound("Post not found.")
+
+    comments = Comment.objects.filter(post=post).order_by('created_at')
+    comments_data = []
+
+    for comment in comments:
+        display_content = comment.content
+
+        # 2. Check Comment Visibility
+        if comment.is_suppressed:
+            if not can_view_hidden_content(request.user, comment.author):
+                display_content = "This comment has been removed"
+
+        # --- MISSING PART START ---
+        # 3. Get Comment Color (This block was likely missing or indented wrong)
+        try:
+            comment_color = comment.author.profile.color
+        except AttributeError:
+            comment_color = "#000000"
+        # --- MISSING PART END ---
+
+        comments_data.append({
+            "id": comment.id,
+            "username": comment.author.username,
+            "content": display_content,
+            "date": comment.created_at.strftime("%Y-%m-%d %H:%M"),
+            "is_suppressed": comment.is_suppressed,
+            "color": comment_color  # <--- This caused the error because line above wasn't running
+        })
+        
+    # Get Post Author Color
+    try:
+        post_author_color = post.author.profile.color
+    except AttributeError:
+        post_author_color = "#000000"
+
+    return JsonResponse({
+        "id": post.id,
+        "title": post.title,
+        "username": post.author.username,
+        "date": post.created_at.strftime("%Y-%m-%d %H:%M"),
+        "content": post.content,
+        "is_suppressed": post.is_suppressed,
+        "color": post_author_color,
+        "comments": comments_data
+    })
 
 # ===================================================================
 # HW2 - Basic Views

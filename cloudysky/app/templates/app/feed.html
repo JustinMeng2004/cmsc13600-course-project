@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CloudySky Feed</title>
+    <style>
+        .post-card {
+            border: 1px solid #ccc;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+        }
+        .hidden-badge {
+            background-color: red;
+            color: white;
+            padding: 2px 5px;
+            font-size: 0.8em;
+            border-radius: 3px;
+            margin-left: 10px;
+        }
+        .username {
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>Latest Posts</h1>
+    <div id="feed-container">Loading...</div>
+
+    <script>
+        // 1. Call your API
+        fetch('/app/feed/')
+            .then(response => response.json())
+            .then(data => {
+                const container = document.getElementById('feed-container');
+                container.innerHTML = ''; // Clear "Loading..."
+
+                // 2. Loop through the posts
+                data.feed.forEach(post => {
+                    // Create the HTML for one post
+                    const postDiv = document.createElement('div');
+                    postDiv.className = 'post-card';
+                    
+                    // Apply Color Coding to the left border
+                    postDiv.style.borderLeft = `5px solid ${post.color}`;
+
+                    // Check censorship status
+                    let badge = post.is_suppressed ? '<span class="hidden-badge">HIDDEN (Censor View)</span>' : '';
+
+                    postDiv.innerHTML = `
+                        <h3>
+                            <a href="/app/post-page/${post.id}/">${post.title}</a>
+                            ${badge}
+                        </h3>
+                        <p class="username" style="color: ${post.color}">@${post.username}</p>
+                        <p class="date">${post.date}</p>
+                        <p>${post.content_truncated}</p>
+                    `;
+                    
+                    container.appendChild(postDiv);
+                });
+            })
+            .catch(error => console.error('Error:', error));
+    </script>
+</body>
+</html>

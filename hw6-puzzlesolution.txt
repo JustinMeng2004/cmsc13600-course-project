@@ -1,0 +1,43 @@
+puzzle_key = 049677629
+puzzle_misspell = "tysxnt."
+
+The intended word was supposed to be tryant and the quote is from Brandon Sanderson, Mistborn: The Final Empire
+
+TOOLS & LIBRARIES USED:
+-----------------------
+1. Python `multiprocessing`: Used `multiprocessing.Pool` and `cpu_count` by splicing the range of keys for each core which drastically improved the runtime. 
+2. Python `hashlib`
+3. Python `pandas`
+4. Python `functools.partial`
+5. String manipulation: Custom functions to have Levenshtein edit distance (1-edit and 2-edit) variations.
+Dictionary was a Kaggle file that had around 200,000 words from the English dictionary
+
+
+METHODOLOGY & STEPS:
+--------------------
+
+Step 1: Cracking the 9-Digit Key (Parallel Brute Force)
+- Strategy: I assumed the hidden text must contain common English stop words (specifically "the").
+- Implementation: I wrote a script using `multiprocessing` to split the 1 billion keys into chunks across 14 CPU cores. Each core checked if `sha256(KEY + "the")` existed in the puzzle file.
+- Result: Found the key `049677629`.
+- Time Taken: Approximately 3-5 minutes.
+
+Step 2: Initial Reconstruction & Punctuation Analysis
+- I used the found key to hash my clean dictionary against the `PUZZLE.txt` file.
+- Result: I decoded about 80% of the message, but ~20 words were missing.
+- Analysis: I realized the dictionary only contained raw words (e.g., "principle"), but the puzzle hashed words with punctuation (e.g., "principle.").
+- Fix: I identified the sentence structure and searched the partial text online. I found the quote online and put in my dictionary the words with variations of punctuation. 
+
+Step 3: Solving the Final Typo (Edit Distance Attack)
+- Even after applying the known quote, one word remained problematic: "tyrant". Therefore I knew this was the misspelled one.
+- Algorithm: I implemented a combinatorial generator to create all possible strings with an Edit Distance of 1 and 2 from the word "tyrant".
+    - This included deletions, transpositions, replacements, and insertions.
+    - I generated ~115,000 variations of "tyrant".
+    - I appended a period (".") to all variations to match the sentence structure according to what the online reference
+- Verification: The script matched the hash for Line 40 to the string "tysxnt.".
+
+TIME METRICS:
+-------------
+- Key Cracking (Runtime): ~15 minutes (using Multiprocessing).
+- Text Reconstruction & Debugging: ~45 minutes.
+- Total Project Time: ~1 hour.

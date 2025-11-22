@@ -2,6 +2,18 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
+    # HW 6 Paths
+    	# Matches 'app/feed'
+    path('feed/', views.feed, name='feed'),
+    
+    	# Matches 'app/post/1', 'app/post/45', etc.
+    path('post/<int:post_id>/', views.post_detail, name='post_detail'),
+
+    # ... your api urls ...
+    path('feed-page/', views.feed_page, name='feed_page'),
+    path('post-page/<int:post_id>/', views.post_page, name='post_page'),
+
+
     # HW4 paths
     path('new', views.signup_view, name='signup_page'),
     path('new/', views.signup_view, name='signup_page_slash'), # Safety duplicate

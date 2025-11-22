@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Post Details</title>
+    <style>
+        .comment {
+            border-bottom: 1px solid #eee;
+            padding: 10px;
+            margin-left: 20px;
+        }
+        .redacted {
+            color: #999;
+            font-style: italic;
+            background-color: #f9f9f9;
+        }
+    </style>
+</head>
+<body>
+    <a href="/app/feed-page/">← Back to Feed</a>
+    
+    <div id="post-container">Loading Post...</div>
+    
+    <hr>
+    <h3>Comments</h3>
+    <div id="comments-container">Loading Comments...</div>
+
+    <script>
+        // Get the Post ID from the Django template context
+        const postId = "{{ post_id }}";
+
+        fetch(`/app/post/${postId}/`)
+            .then(response => {
+                if (response.status === 404) {
+                    document.body.innerHTML = "<h1>404: Post Not Found (or is Hidden)</h1>";
+                    throw new Error("Post not found");
+                }
+                return response.json();
+            })
+            .then(data => {
+                // --- RENDER POST ---
+                const postContainer = document.getElementById('post-container');
+                
+                let postBadge = data.is_suppressed ? '<span style="color:red; font-weight:bold;">[HIDDEN POST]</span>' : '';
+
+                postContainer.innerHTML = `
+                    <h1 style="border-bottom: 3px solid ${data.color}">${data.title} ${postBadge}</h1>
+                    <p><strong>By: <span style="color: ${data.color}">${data.username}</span></strong> on ${data.date}</p>
+                    <div class="content">${data.content}</div>
+                `;
+
+                // --- RENDER COMMENTS ---
+                const commentsContainer = document.getElementById('comments-container');
+                commentsContainer.innerHTML = '';
+
+                data.comments.forEach(comment => {
+                    const div = document.createElement('div');
+                    div.className = 'comment';
+
+                    // If the comment is suppressed, we add a special style class
+                    if (comment.is_suppressed) {
+                        div.classList.add('redacted');
+                    }
+
+                    div.innerHTML = `
+                        <p>
+                            <strong style="color: ${comment.color}">${comment.username}</strong>: 
+                            ${comment.content}
+                        </p>
+                        <small>${comment.date}</small>
+                    `;
+                    commentsContainer.appendChild(div);
+                });
+            })
+            .catch(error => console.error('Error:', error));
+    </script>
+</body>
+</html>
