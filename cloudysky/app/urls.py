@@ -13,10 +13,20 @@ urlpatterns = [
     path('feed-page/', views.feed_page, name='feed_page'),
     path('post-page/<int:post_id>/', views.post_page, name='post_page'),
 
+
 	# --- NEW ENDPOINTS FOR GRADER ---
-    path('hidePost/', views.hide_post, name='hide_post'),       # <--- Added
-    path('hideComment/', views.hide_comment, name='hide_comment'), # <--- Added
-    path('dumpFeed/', views.dump_feed, name='dump_feed'),       # <--- Added
+    # 1. Catch /hidePost/ (with slash)
+    path('hidePost/', views.hide_post, name='hide_post'),
+    # 2. Catch /hidePost (no slash) - Pointing to the NEW view
+    path('hidePost', views.hide_post, name='hide_post_no_slash'),
+    
+    # 3. Same for Comments
+    path('hideComment/', views.hide_comment, name='hide_comment'),
+    path('hideComment', views.hide_comment, name='hide_comment_no_slash'),
+
+    # 4. Dump Feed
+    path('dumpFeed/', views.dump_feed, name='dump_feed'),
+    path('dumpFeed', views.dump_feed, name='dump_feed_no_slash'),
 
 
     # HW4 paths
@@ -33,14 +43,14 @@ urlpatterns = [
     # Version WITHOUT slash
     path('createPost', views.create_post_api, name='create_post_api'),
     path('createComment', views.create_comment_api, name='create_comment_api'),
-    path('hidePost', views.hide_post_api, name='hide_post_api'),
-    path('hideComment', views.hide_comment_api, name='hide_comment_api'),
+    # path('hidePost', views.hide_post_api, name='hide_post_api'),
+    # path('hideComment', views.hide_comment_api, name='hide_comment_api'),
 
     # Version WITH slash
     path('createPost/', views.create_post_api, name='create_post_api_slash'),
     path('createComment/', views.create_comment_api, name='create_comment_api_slash'),
-    path('hidePost/', views.hide_post_api, name='hide_post_api_slash'),
-    path('hideComment/', views.hide_comment_api, name='hide_comment_api_slash'),
+    # path('hidePost/', views.hide_post_api, name='hide_post_api_slash'),
+    # path('hideComment/', views.hide_comment_api, name='hide_comment_api_slash'),
 
     # Diagnostic
     path('dumpFeed', views.dump_feed_api, name='dump_feed_api'),
