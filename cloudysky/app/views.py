@@ -437,27 +437,34 @@ import json
 # --- NEW MODERATION ENDPOINTS ---
 
 @csrf_exempt
-# REMOVED @login_required (This fixes Error 13.0)
 def hide_post(request):
     if request.method != 'POST':
         return HttpResponse("Method not allowed", status=405)
 
-    # 1. Manual Login Check (Fixes Error 13.0)
-    # If they aren't logged in, return 401 immediately (don't redirect to login page)
+    # 1. Auth Checks
     if not request.user.is_authenticated:
         return HttpResponse("Unauthorized", status=401)
-
-    # 2. Permission Check (Fixes Error 13.2)
-    # If they are logged in but not an admin, return 401
     if not is_censor(request.user):
         return HttpResponse("Unauthorized", status=401)
 
-    # 3. Parse Data
-    try:
-        data = json.loads(request.body)
-        post_id = data.get('post_id')
-    except:
-        return HttpResponse("Invalid JSON", status=400)
+    # 2. HYBRID PARSING (Handle JSON OR Form Data)
+    post_id = None
+    
+    # Check if sent via standard Form Data (request.POST)
+    if 'post_id' in request.POST:
+        post_id = request.POST.get('post_id')
+    
+    # If not, try parsing the body as JSON
+    else:
+        try:
+            data = json.loads(request.body)
+            post_id = data.get('post_id')
+        except:
+            pass # JSON failed, post_id is still None
+
+    # 3. Validate
+    if not post_id:
+        return HttpResponse("Missing post_id", status=400)
 
     # 4. Action
     post = get_object_or_404(Post, id=post_id)
@@ -466,26 +473,33 @@ def hide_post(request):
 
     return JsonResponse({"status": "success", "message": f"Post {post_id} hidden"})
 
+
 @csrf_exempt
-# REMOVED @login_required (This fixes the comment version of 13.0)
 def hide_comment(request):
     if request.method != 'POST':
         return HttpResponse("Method not allowed", status=405)
 
-    # 1. Manual Login Check
+    # 1. Auth Checks
     if not request.user.is_authenticated:
         return HttpResponse("Unauthorized", status=401)
-
-    # 2. Permission Check
     if not is_censor(request.user):
         return HttpResponse("Unauthorized", status=401)
 
-    # 3. Parse Data
-    try:
-        data = json.loads(request.body)
-        comment_id = data.get('comment_id')
-    except:
-        return HttpResponse("Invalid JSON", status=400)
+    # 2. HYBRID PARSING
+    comment_id = None
+    
+    if 'comment_id' in request.POST:
+        comment_id = request.POST.get('comment_id')
+    else:
+        try:
+            data = json.loads(request.body)
+            comment_id = data.get('comment_id')
+        except:
+            pass
+
+    # 3. Validate
+    if not comment_id:
+        return HttpResponse("Missing comment_id", status=400)
 
     # 4. Action
     comment = get_object_or_404(Comment, id=comment_id)
