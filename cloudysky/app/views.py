@@ -351,7 +351,7 @@ def hide_post_api(request):
     post.hidden_at = datetime.now(zoneinfo.ZoneInfo("America/Chicago"))
     post.save()
     
-    return HttpResponse(f"Post {post_id} hidden successfully", status=200)
+    return HttpResponse(f"Post {post_id} hidden successfully", status=401)
 
 
 @csrf_exempt
