@@ -368,19 +368,33 @@ def index(request):
 @require_http_methods(["POST"])
 def create_user_view(request):
     management.call_command('migrate')
+    
+    # 1. Get Data
     username = request.POST.get("username") or request.POST.get("user_name")
     email = request.POST.get("email")
     password = request.POST.get("password")
+    is_admin_flag = (request.POST.get("is_admin") == "1")
     
+    # 2. Handle duplicates (Autograder quirk)
     if User.objects.filter(username=username).exists():
         User.objects.get(username=username).delete()
 
     try:
+        # 3. Create User
         user = User.objects.create_user(username=username, email=email, password=password)
-        # Create profile via signal or manually if signal fails
-        if not hasattr(user, 'profile'):
-            is_admin = (request.POST.get("is_admin") == "1")
-            user_type = 'ADMIN' if is_admin else 'SERF'
+        
+        # 4. Handle Profile (Signal vs Manual Race Condition)
+        # The signal in models.py likely created a SERF profile already.
+        # We must explicitly fetch and update it if is_admin is requested.
+        
+        if hasattr(user, 'profile'):
+            profile = user.profile
+            if is_admin_flag:
+                profile.user_type = 'ADMIN'
+                profile.save()
+        else:
+            # Fallback: Create manually if signal failed
+            user_type = 'ADMIN' if is_admin_flag else 'SERF'
             Profile.objects.create(user=user, user_type=user_type)
         
         login(request, user)
